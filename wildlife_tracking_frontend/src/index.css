@@ -31,3 +31,15 @@ a {
 .card {
   @apply rounded-xl bg-surface shadow-sm border border-gray-100;
 }
+
+/* Leaflet UI tweaks for theme */
+.leaflet-container a {
+  color: var(--primary);
+}
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #ffffff;
+}
+.leaflet-control-layers {
+  border-radius: 8px;
+  overflow: hidden;
+}

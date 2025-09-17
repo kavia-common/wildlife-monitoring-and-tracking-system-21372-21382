@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Layout from "../components/Layout";
-import MapPlaceholder from "../components/map/MapPlaceholder";
+import MapContainer from "../components/map/MapContainer";
 import TelemetryTimeline from "../components/telemetry/TelemetryTimeline";
 import { telemetryApi, lastHoursRange } from "../services/telemetry";
 
@@ -12,6 +12,8 @@ export default function Dashboard() {
   const [animalId, setAnimalId] = useState("");
   const [deviceId, setDeviceId] = useState("");
   const [ingestBusy, setIngestBusy] = useState(false);
+  const [showHeat, setShowHeat] = useState(true);
+  const [showCluster, setShowCluster] = useState(true);
   const quickRange = lastHoursRange(6);
 
   const handleIngestDemo = async () => {
@@ -51,12 +53,9 @@ export default function Dashboard() {
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
 
-        <MapPlaceholder />
-
-        {/* Quick telemetry filters and demo ingestion */}
         <div className="card p-4">
           <div className="flex flex-col md:flex-row gap-3 md:items-end md:justify-between">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-1">
               <div>
                 <label className="block text-xs text-gray-600 mb-1">Animal ID</label>
                 <input
@@ -75,12 +74,14 @@ export default function Dashboard() {
                   onChange={(e) => setDeviceId(e.target.value)}
                 />
               </div>
-              <div className="text-xs text-gray-600">
-                <div className="mb-1">Quick Range</div>
-                <div className="text-gray-700">
-                  Last 6 hours: {new Date(quickRange.start).toLocaleString()} → {new Date(quickRange.end).toLocaleString()}
-                </div>
-              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={showHeat} onChange={(e) => setShowHeat(e.target.checked)} />
+                Heatmap
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={showCluster} onChange={(e) => setShowCluster(e.target.checked)} />
+                Clusters
+              </label>
             </div>
             <div className="flex items-center gap-2">
               <button className="btn" onClick={handleIngestDemo} disabled={ingestBusy}>
@@ -89,6 +90,15 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        <MapContainer
+          animalId={animalId || undefined}
+          deviceId={deviceId || undefined}
+          defaultHours={6}
+          showHeatmap={showHeat}
+          showClusters={showCluster}
+          onMarkerClick={() => {}}
+        />
 
         {/* Telemetry timeline */}
         <TelemetryTimeline
