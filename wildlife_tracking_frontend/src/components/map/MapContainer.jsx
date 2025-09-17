@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { MapContainer as LeafletMap, TileLayer, Marker, Popup, Polyline, LayersControl, LayerGroup, useMap, ScaleControl } from "react-leaflet";
+import { MapContainer as LeafletMap, TileLayer, Marker, Popup, Polyline, LayersControl, LayerGroup, useMap, ScaleControl, Polygon } from "react-leaflet";
 import "leaflet.heat";
 import "leaflet.markercluster";
 import { telemetryApi, lastHoursRange } from "../../services/telemetry";
 import { apiGet } from "../../services/api";
 import { geofenceApi, alertsApi } from "../../services/alerts";
+import { analyticsApi } from "../../services/analytics";
 
 // Fix default icon paths in Leaflet when bundling
 delete L.Icon.Default.prototype._getIconUrl;
@@ -49,6 +50,11 @@ export default function MapContainer({
 }) {
   const [points, setPoints] = useState([]);
   const [error, setError] = useState("");
+  const [predictBusy, setPredictBusy] = useState(false);
+  const [homeRangeBusy, setHomeRangeBusy] = useState(false);
+  const [predictedPath, setPredictedPath] = useState([]); // [{lat,lng,ts}]
+  const [homeRange, setHomeRange] = useState([]); // [[lat,lng],...]
+  const [classifySummary, setClassifySummary] = useState(null); // {top: ..., items: [...]}
   const [loading, setLoading] = useState(false);
 
   // Optional entity markers
@@ -94,6 +100,10 @@ export default function MapContainer({
         .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
         .sort((a, b) => new Date(a.ts) - new Date(b.ts));
       setPoints(normalized);
+      // Clear previous analytics when filters change
+      setPredictedPath([]);
+      setHomeRange([]);
+      setClassifySummary(null);
     } catch (e) {
       setError(e?.message || "Failed to load telemetry");
     } finally {
@@ -173,6 +183,73 @@ export default function MapContainer({
   useEffect(() => {
     loadGeofences();
   }, []);
+
+  // Trigger movement prediction
+  const runPrediction = async () => {
+    setPredictBusy(true);
+    try {
+      const payload = {
+        animalId: animalId || undefined,
+        deviceId: deviceId || undefined,
+        start: filters.start,
+        end: filters.end,
+        horizon: 3600, // 1h default
+        steps: 20,
+      };
+      const path = await analyticsApi.movementPredict(payload);
+      setPredictedPath(path);
+    } catch (e) {
+      alert(e?.message || "Failed to get movement prediction");
+    } finally {
+      setPredictBusy(false);
+    }
+  };
+
+  // Trigger home range fetch
+  const runHomeRange = async () => {
+    setHomeRangeBusy(true);
+    try {
+      const res = await analyticsApi.homeRange({
+        animalId: animalId || undefined,
+        deviceId: deviceId || undefined,
+        start: filters.start,
+        end: filters.end,
+      });
+      setHomeRange(res.polygon || []);
+    } catch (e) {
+      alert(e?.message || "Failed to get home range");
+    } finally {
+      setHomeRangeBusy(false);
+    }
+  };
+
+  // Trigger telemetry behavior classification
+  const runClassification = async () => {
+    try {
+      if (!points.length) {
+        alert("No telemetry points available to classify.");
+        return;
+      }
+      const results = await analyticsApi.classifyTelemetry(points);
+      // Compute quick summary: top label by count and avg confidence
+      const countMap = new Map();
+      let items = [];
+      for (const r of results) {
+        const key = r.label || "unknown";
+        const prev = countMap.get(key) || { count: 0, sumConf: 0 };
+        countMap.set(key, { count: prev.count + 1, sumConf: prev.sumConf + Number(r.confidence || 0) });
+        items.push({ ts: r.ts || r.timestamp, label: key, confidence: r.confidence });
+      }
+      let top = null;
+      for (const [label, { count, sumConf }] of countMap.entries()) {
+        const avg = count ? sumConf / count : 0;
+        if (!top || count > top.count) top = { label, count, avgConfidence: Number(avg.toFixed(2)) };
+      }
+      setClassifySummary({ top, items });
+    } catch (e) {
+      alert(e?.message || "Failed to classify telemetry");
+    }
+  };
 
   // Live alerts WS: collect breach events
   useEffect(() => {
@@ -415,6 +492,9 @@ export default function MapContainer({
                 {pathCoords.length > 1 && (
                   <Polyline positions={pathCoords} color="#2563EB" weight={3} opacity={0.8} />
                 )}
+                {predictedPath.length > 1 && (
+                  <Polyline positions={predictedPath.map(p => [p.lat, p.lng])} color="#8B5CF6" weight={3} opacity={0.8} dashArray="6 6" />
+                )}
               </LayerGroup>
             </LayersControl.Overlay>
 
@@ -426,7 +506,7 @@ export default function MapContainer({
               <LayerGroup>
                 {geofences.map((g) =>
                   g.type === "circle" && Number.isFinite(g.coordinates?.[0]?.[0]) && Number.isFinite(g.coordinates?.[0]?.[1]) && Number.isFinite(g.radius) ? (
-                    <Polyline // show circle as approximated polyline if no circle primitive; leaflet circle isn't imported via react-leaflet here
+                    <Polyline
                       key={`g-${g.id}`}
                       positions={approximateCircle(g.coordinates[0][0], g.coordinates[0][1], g.radius)}
                       color="#10B981"
@@ -438,6 +518,10 @@ export default function MapContainer({
                       <Polyline key={`g-${g.id}`} positions={g.coordinates} color="#10B981" weight={2} opacity={0.8} />
                     )
                   )
+                )}
+                {/* Home range polygon */}
+                {Array.isArray(homeRange) && homeRange.length > 2 && (
+                  <Polygon positions={homeRange} pathOptions={{ color: "#F97316", weight: 2, fillColor: "#F97316", fillOpacity: 0.15 }} />
                 )}
                 {/* current drawing preview */}
                 {drawCoords.length > 1 && (
@@ -473,23 +557,58 @@ export default function MapContainer({
           <FitBounds />
         </LeafletMap>
       </div>
-      <div className="p-3 border-t text-xs text-gray-600 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="p-3 border-t text-xs text-gray-600 flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-gray-800">
             {loading ? "Loading telemetry..." : `${points.length} points`}
             {animalId ? ` • Animal: ${animalId}` : ""}
             {deviceId ? ` • Device: ${deviceId}` : ""}
             {` • Geofences: ${geofences.length}`}
           </div>
-          <button
-            className="text-primary"
-            onClick={loadTelemetry}
-            disabled={loading}
-            title="Reload telemetry"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-2 py-1 rounded-md border text-sm"
+              onClick={loadTelemetry}
+              disabled={loading}
+              title="Reload telemetry"
+            >
+              Refresh
+            </button>
+            <button
+              className="px-2 py-1 rounded-md border text-sm"
+              onClick={runPrediction}
+              disabled={predictBusy}
+              title="Predict future movement"
+            >
+              {predictBusy ? "Predicting..." : "Predict Movement"}
+            </button>
+            <button
+              className="px-2 py-1 rounded-md border text-sm"
+              onClick={runHomeRange}
+              disabled={homeRangeBusy}
+              title="Calculate home range"
+            >
+              {homeRangeBusy ? "Calculating..." : "Home Range"}
+            </button>
+            <button
+              className="px-2 py-1 rounded-md border text-sm"
+              onClick={runClassification}
+              title="Classify behavior from telemetry"
+            >
+              Classify Behavior
+            </button>
+          </div>
         </div>
+
+        {/* Classification summary */}
+        {classifySummary?.top && (
+          <div className="text-sm text-gray-700">
+            <span className="font-medium">Predominant behavior:</span>{" "}
+            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+              {classifySummary.top.label} • n={classifySummary.top.count} • avg conf={classifySummary.top.avgConfidence}
+            </span>
+          </div>
+        )}
 
         {/* Geofence controls */}
         <div className="flex flex-wrap items-center gap-2">

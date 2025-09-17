@@ -108,6 +108,10 @@ export default function Dashboard() {
           onPointChange={() => {}}
         />
 
+        <div className="card p-4 text-sm text-gray-700">
+          Use the map toolbar above to Predict Movement (dashed purple path) and calculate Home Range (orange polygon) for the selected animal/device and time range.
+        </div>
+
         {/* Stats placeholders */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {["Tracked Animals", "Active Devices", "Recent Alerts", "Telemetry Events"].map((label) => (
