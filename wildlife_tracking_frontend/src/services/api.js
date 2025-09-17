@@ -19,7 +19,7 @@ function authHeaders() {
 export async function apiGet(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "GET",
-    headers: { ...(options.headers || {}), ...authHeaders() },
+    headers: { "Accept": "application/json", ...(options.headers || {}), ...authHeaders() },
     ...options,
   });
   if (!res.ok) {
@@ -38,6 +38,7 @@ export async function apiPost(path, body, options = {}) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Accept": "application/json",
       ...(options.headers || {}),
       ...authHeaders(),
     },
@@ -60,6 +61,7 @@ export async function apiPut(path, body, options = {}) {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
+      "Accept": "application/json",
       ...(options.headers || {}),
       ...authHeaders(),
     },
@@ -80,7 +82,7 @@ export async function apiPut(path, body, options = {}) {
 export async function apiDelete(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "DELETE",
-    headers: { ...(options.headers || {}), ...authHeaders() },
+    headers: { "Accept": "application/json", ...(options.headers || {}), ...authHeaders() },
     ...options,
   });
   if (!res.ok) {
@@ -93,3 +95,41 @@ export async function apiDelete(path, options = {}) {
     return null;
   }
 }
+
+/**
+ * PUBLIC_INTERFACE
+ * animalsApi - Convenience wrapper for Animals CRUD
+ * Adapts to common REST paths:
+ * - list:   GET /animals
+ * - detail: GET /animals/:id
+ * - create: POST /animals
+ * - update: PUT /animals/:id
+ * - remove: DELETE /animals/:id
+ */
+export const animalsApi = {
+  // PUBLIC_INTERFACE
+  async list(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const q = query ? `?${query}` : "";
+    return apiGet(`/animals${q}`);
+  },
+  // PUBLIC_INTERFACE
+  async detail(id) {
+    if (!id) throw new Error("Animal id is required");
+    return apiGet(`/animals/${id}`);
+  },
+  // PUBLIC_INTERFACE
+  async create(payload) {
+    return apiPost(`/animals`, payload);
+  },
+  // PUBLIC_INTERFACE
+  async update(id, payload) {
+    if (!id) throw new Error("Animal id is required");
+    return apiPut(`/animals/${id}`, payload);
+  },
+  // PUBLIC_INTERFACE
+  async remove(id) {
+    if (!id) throw new Error("Animal id is required");
+    return apiDelete(`/animals/${id}`);
+  },
+};
