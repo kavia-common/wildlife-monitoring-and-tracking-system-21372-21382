@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import AnimalForm from "../components/forms/AnimalForm";
 import { animalsApi } from "../services/api";
+import TelemetryTimeline from "../components/telemetry/TelemetryTimeline";
 
 /**
  * PUBLIC_INTERFACE
- * Animals page - list/detail with CRUD wired to backend APIs
+ * Animals page - list/detail with CRUD wired to backend APIs and telemetry timeline for selected animal
  */
 export default function Animals() {
   const [animals, setAnimals] = useState([]);
@@ -156,21 +157,28 @@ export default function Animals() {
 
             {/* Detail panel */}
             {selected && (
-              <div className="mt-4 border-t pt-4">
-                <h4 className="font-semibold mb-2">Details</h4>
-                <div className="text-sm text-gray-700">
-                  <div><span className="font-medium">ID:</span> {selected.id || "—"}</div>
-                  <div><span className="font-medium">Name:</span> {selected.name || "—"}</div>
-                  <div><span className="font-medium">Species:</span> {selected.species || "—"}</div>
-                  <div><span className="font-medium">Tag ID:</span> {selected.tagId || "—"}</div>
+              <div className="mt-4 border-t pt-4 space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Details</h4>
+                  <div className="text-sm text-gray-700">
+                    <div><span className="font-medium">ID:</span> {selected.id || "—"}</div>
+                    <div><span className="font-medium">Name:</span> {selected.name || "—"}</div>
+                    <div><span className="font-medium">Species:</span> {selected.species || "—"}</div>
+                    <div><span className="font-medium">Tag ID:</span> {selected.tagId || "—"}</div>
+                  </div>
+                  <div className="mt-3">
+                    <AnimalForm
+                      initialData={selected}
+                      onSubmit={(data) => handleUpdate(selected.id, data)}
+                      submitLabel="Update"
+                      busy={loading}
+                    />
+                  </div>
                 </div>
-                <div className="mt-3">
-                  <AnimalForm
-                    initialData={selected}
-                    onSubmit={(data) => handleUpdate(selected.id, data)}
-                    submitLabel="Update"
-                    busy={loading}
-                  />
+
+                {/* Telemetry for this animal */}
+                <div>
+                  <TelemetryTimeline animalId={selected.id} defaultHours={24} />
                 </div>
               </div>
             )}

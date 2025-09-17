@@ -29,3 +29,20 @@ The Ocean Professional theme is available via Tailwind config and CSS variables 
 
 - REACT_APP_API_URL (optional): URL of the backend API.
 
+## Telemetry integration
+
+- Endpoints expected:
+  - POST `/telemetry` — ingest single point or an array of points. Body example:
+    ```json
+    { "animalId": 101, "deviceId": "collar-42", "ts": "2024-01-01T12:00:00Z", "lat": 12.34, "lng": 56.78, "speed": 1.2, "battery": 90 }
+    ```
+  - GET `/telemetry?animalId=...&deviceId=...&start=ISO&end=ISO&limit=1000` — returns array or `{ data: [...] }`.
+
+- JWT: All requests include `Authorization: Bearer <token>` header automatically via `src/services/api.js`.
+
+- UI:
+  - Dashboard: filter by Animal ID or Device ID, demo ingestion button, and a playback/timeline component.
+  - Animals: when an animal is selected, a telemetry timeline appears under details.
+
+- Date/Range:
+  - Timeline supports start/end selection via `datetime-local` inputs; values are converted to ISO-8601 UTC for API calls.
