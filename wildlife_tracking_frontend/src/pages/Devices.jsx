@@ -188,7 +188,7 @@ export default function Devices() {
                   <li
                     key={d.id || d.deviceId}
                     className={`py-2 flex items-center justify-between ${
-                      selectedId === d.id ? "bg-blue-50/50" : ""
+                      selectedId === d.id ? "bg-forest-50" : ""
                     }`}
                   >
                     <button

@@ -35,7 +35,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="card p-6 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-1">Welcome back</h1>
+        <h1 className="text-2xl font-bold mb-1 flex items-center gap-2">Welcome back <span className="text-xl">🌿</span></h1>
         <p className="text-gray-600 mb-6">Sign in to AnimalTrackr</p>
         {error && <div className="mb-4 text-error text-sm">{error}</div>}
         <form className="space-y-3" onSubmit={handleSubmit}>

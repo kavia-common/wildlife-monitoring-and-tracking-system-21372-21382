@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ocean Professional Base Theme */
+/* Nature/Earth Base Theme */
 :root {
-  --primary: #2563EB;
-  --secondary: #F59E0B;
-  --error: #EF4444;
-  --background: #f9fafb;
-  --surface: #ffffff;
-  --text: #111827;
+  --primary: #2F855A;     /* emerald-ish */
+  --secondary: #B7791F;   /* earthy amber */
+  --error: #B91C1C;
+  --background: #F6F7F2;  /* misty off-white with green hint */
+  --surface: #FFFFFF;
+  --text: #1F2937;
 }
 
 html, body, #root {
@@ -18,6 +18,8 @@ html, body, #root {
 
 body {
   @apply m-0 bg-[var(--background)] text-[var(--text)] font-sans;
+  background-image: radial-gradient(60% 60% at 0% 0%, rgba(16,185,129,0.06) 0%, transparent 60%),
+                    radial-gradient(40% 40% at 100% 20%, rgba(183,121,31,0.06) 0%, transparent 60%);
 }
 
 a {
@@ -29,7 +31,7 @@ a {
 }
 
 .card {
-  @apply rounded-xl bg-surface shadow-sm border border-gray-100;
+  @apply rounded-2xl bg-surface shadow-sm border border-stone-200;
 }
 
 /* Leaflet UI tweaks for theme */
@@ -38,8 +40,9 @@ a {
 }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: #ffffff;
+  border-radius: 10px;
 }
 .leaflet-control-layers {
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
 }

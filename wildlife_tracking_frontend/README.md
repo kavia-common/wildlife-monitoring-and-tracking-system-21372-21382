@@ -23,7 +23,7 @@ A minimal AuthContext persists a token, role, and user in localStorage for rapid
 
 ## Theming
 
-The Ocean Professional theme is available via Tailwind config and CSS variables in `src/index.css` and `src/App.css`.
+A nature-inspired theme (greens/browns) is applied via Tailwind config and CSS variables in `src/index.css` and `src/App.css`. Components use gradients, rounded corners and hover effects to convey a wildlife conservation brand.
 
 ## Environment
 
@@ -41,7 +41,7 @@ The Ocean Professional theme is available via Tailwind config and CSS variables 
 - JWT: All requests include `Authorization: Bearer <token>` header automatically via `src/services/api.js`.
 
 - UI:
-  - Dashboard: filter by Animal ID or Device ID, demo ingestion button, and a playback/timeline component.
+  - Dashboard: wildlife-themed Navbar, sloth bear hero cards, quick actions, interactive map, and playback/timeline component.
   - Animals: when an animal is selected, a telemetry timeline appears under details.
 
 - Date/Range:

@@ -192,7 +192,7 @@ export default function TelemetryTimeline({
       </div>
 
       {/* Mini speed chart */}
-      <div className="h-24 w-full bg-gradient-to-r from-blue-50 to-gray-50 rounded-md border relative overflow-hidden">
+      <div className="h-24 w-full bg-gradient-to-r from-forest-50 to-stone-50 rounded-md border relative overflow-hidden">
         {speedSeries.length > 0 && (
           <svg width="100%" height="100%" viewBox={`0 0 ${Math.max(speedSeries.length - 1, 1)} ${maxSpeed || 1}`} preserveAspectRatio="none">
             <polyline
@@ -247,7 +247,7 @@ export default function TelemetryTimeline({
             {points.map((p, i) => (
               <tr
                 key={`${p.id || p.ts || p.timestamp || i}`}
-                className={`border-t hover:bg-blue-50/40 cursor-pointer ${i === idx ? "bg-blue-50/60" : ""}`}
+                className={`border-t hover:bg-forest-50 cursor-pointer ${i === idx ? "bg-forest-100" : ""}`}
                 onClick={() => setIdx(i)}
                 title="Jump to this time"
               >

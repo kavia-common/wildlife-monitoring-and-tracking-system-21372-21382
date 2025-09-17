@@ -6,7 +6,7 @@ import React from "react";
  */
 export default function MapPlaceholder() {
   return (
-    <div className="card p-4 h-80 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50">
+    <div className="card p-4 h-80 flex items-center justify-center bg-gradient-to-br from-forest-50 to-stone-50">
       <div className="text-center">
         <div className="text-6xl mb-2">🗺️</div>
         <p className="text-gray-700">Map will render here (Leaflet/Mapbox)</p>

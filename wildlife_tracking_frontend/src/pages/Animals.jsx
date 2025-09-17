@@ -129,7 +129,7 @@ export default function Animals() {
                 {animals.map((a) => (
                   <li
                     key={a.id || a.tagId || a.name}
-                    className={`py-2 flex items-center justify-between ${selectedId === a.id ? "bg-blue-50/50" : ""}`}
+                    className={`py-2 flex items-center justify-between ${selectedId === a.id ? "bg-forest-50" : ""}`}
                   >
                     <button
                       className="text-left flex-1 px-2"

@@ -458,8 +458,8 @@ export default function MapContainer({
   };
 
   return (
-    <div className="card p-0 overflow-hidden">
-      <div className="h-[540px] w-full relative">
+    <div className="card p-0 overflow-hidden border-stone-200">
+      <div className="h-[540px] w-full relative bg-gradient-to-br from-forest-50 to-earth-50">
         {error && (
           <div className="absolute z-[1000] m-3 px-3 py-2 rounded-md bg-red-50 text-red-700 text-sm border border-red-200">
             {error}
@@ -490,10 +490,10 @@ export default function MapContainer({
             <LayersControl.Overlay checked name="Track">
               <LayerGroup>
                 {pathCoords.length > 1 && (
-                  <Polyline positions={pathCoords} color="#2563EB" weight={3} opacity={0.8} />
+                  <Polyline positions={pathCoords} color="#059669" weight={3} opacity={0.85} />
                 )}
                 {predictedPath.length > 1 && (
-                  <Polyline positions={predictedPath.map(p => [p.lat, p.lng])} color="#8B5CF6" weight={3} opacity={0.8} dashArray="6 6" />
+                  <Polyline positions={predictedPath.map(p => [p.lat, p.lng])} color="#92400E" weight={3} opacity={0.8} dashArray="6 6" />
                 )}
               </LayerGroup>
             </LayersControl.Overlay>
@@ -567,7 +567,7 @@ export default function MapContainer({
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="px-2 py-1 rounded-md border text-sm"
+              className="px-2 py-1 rounded-md border text-sm hover:bg-forest-50"
               onClick={loadTelemetry}
               disabled={loading}
               title="Reload telemetry"
@@ -575,7 +575,7 @@ export default function MapContainer({
               Refresh
             </button>
             <button
-              className="px-2 py-1 rounded-md border text-sm"
+              className="px-2 py-1 rounded-md border text-sm hover:bg-forest-50"
               onClick={runPrediction}
               disabled={predictBusy}
               title="Predict future movement"
@@ -583,7 +583,7 @@ export default function MapContainer({
               {predictBusy ? "Predicting..." : "Predict Movement"}
             </button>
             <button
-              className="px-2 py-1 rounded-md border text-sm"
+              className="px-2 py-1 rounded-md border text-sm hover:bg-forest-50"
               onClick={runHomeRange}
               disabled={homeRangeBusy}
               title="Calculate home range"
@@ -591,7 +591,7 @@ export default function MapContainer({
               {homeRangeBusy ? "Calculating..." : "Home Range"}
             </button>
             <button
-              className="px-2 py-1 rounded-md border text-sm"
+              className="px-2 py-1 rounded-md border text-sm hover:bg-forest-50"
               onClick={runClassification}
               title="Classify behavior from telemetry"
             >

@@ -1,9 +1,9 @@
-/* Additional custom styles if needed; Tailwind covers most styling */
+/* Additional custom styles; Tailwind covers most styling */
 :root {
-  --primary: #2563EB;
-  --secondary: #F59E0B;
-  --error: #EF4444;
-  --background: #f9fafb;
+  --primary: #2F855A;
+  --secondary: #B7791F;
+  --error: #B91C1C;
+  --background: #F6F7F2;
   --surface: #ffffff;
-  --text: #111827;
+  --text: #1F2937;
 }

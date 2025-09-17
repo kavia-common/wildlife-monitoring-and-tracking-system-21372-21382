@@ -134,7 +134,7 @@ export default function Alerts() {
         {/* toast */}
         {toast && (
           <div className="fixed right-4 top-16 z-40">
-            <div className="rounded-lg shadow-md border p-3 bg-white">
+            <div className="rounded-lg shadow-md border border-stone-200 p-3 bg-white">
               <div className="text-xs text-gray-500">{new Date(toast.ts).toLocaleString()}</div>
               <div className="font-semibold">{toast.title}</div>
               <div className={`text-xs mt-1 ${toast.severity === "critical" ? "text-error" : toast.severity === "warning" ? "text-secondary" : "text-gray-600"}`}>
