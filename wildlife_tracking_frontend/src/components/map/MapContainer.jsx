@@ -6,6 +6,7 @@ import "leaflet.heat";
 import "leaflet.markercluster";
 import { telemetryApi, lastHoursRange } from "../../services/telemetry";
 import { apiGet } from "../../services/api";
+import { geofenceApi, alertsApi } from "../../services/alerts";
 
 // Fix default icon paths in Leaflet when bundling
 delete L.Icon.Default.prototype._getIconUrl;
@@ -54,6 +55,14 @@ export default function MapContainer({
   const [animals, setAnimals] = useState([]);
   const [devices, setDevices] = useState([]);
   const [cameras, setCameras] = useState([]);
+
+  // Geofences and drawing state
+  const [geofences, setGeofences] = useState([]);
+  const [drawing, setDrawing] = useState(false);
+  const [drawCoords, setDrawCoords] = useState([]);
+  const [geoName, setGeoName] = useState("");
+  const [liveAlerts, setLiveAlerts] = useState([]);
+  const wsRef = useRef(null);
 
   const mapRef = useRef(null);
   const clusterLayerRef = useRef(null);
@@ -141,6 +150,55 @@ export default function MapContainer({
 
   useEffect(() => {
     loadEntities();
+  }, []);
+
+  // Load geofences
+  const loadGeofences = async () => {
+    try {
+      const res = await geofenceApi.list();
+      const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : res?.items || [];
+      const normalized = items.map((g) => ({
+        id: g.id || g._id,
+        name: g.name || "Geofence",
+        type: g.type || (g.radius ? "circle" : "polygon"),
+        coordinates: g.coordinates || g.points || [],
+        radius: g.radius || null,
+      }));
+      setGeofences(normalized);
+    } catch {
+      setGeofences([]);
+    }
+  };
+
+  useEffect(() => {
+    loadGeofences();
+  }, []);
+
+  // Live alerts WS: collect breach events
+  useEffect(() => {
+    wsRef.current = alertsApi.wsConnect(
+      (data) => {
+        const d = typeof data === "string" ? {} : data;
+        if ((d.type || "").toLowerCase().includes("geofence")) {
+          const lat = d.location?.lat ?? d.lat ?? d.latitude;
+          const lng = d.location?.lng ?? d.lng ?? d.longitude;
+          const item = {
+            id: d.id || `geo-${Date.now()}`,
+            ts: d.ts || new Date().toISOString(),
+            title: d.title || "Geofence alert",
+            severity: d.severity || "warning",
+            lat: Number(lat),
+            lng: Number(lng),
+          };
+          if (Number.isFinite(item.lat) && Number.isFinite(item.lng)) {
+            setLiveAlerts((prev) => [item, ...prev].slice(0, 50));
+          }
+        }
+      },
+      () => {},
+      () => {}
+    );
+    return () => wsRef.current?.close();
   }, []);
 
   // Derive polyline path
@@ -306,6 +364,22 @@ export default function MapContainer({
     </Marker>
   ));
 
+  // Approximate circle polygon for display
+  const approximateCircle = (lat, lng, radiusMeters = 100) => {
+    const points = 48;
+    const res = [];
+    const R = 6378137; // earth radius
+    for (let i = 0; i <= points; i++) {
+      const theta = (i / points) * 2 * Math.PI;
+      const dx = (radiusMeters * Math.cos(theta)) / R;
+      const dy = (radiusMeters * Math.sin(theta)) / R;
+      const newLat = lat + (dy * 180) / Math.PI;
+      const newLng = lng + ((dx * 180) / Math.PI) / Math.cos((lat * Math.PI) / 180);
+      res.push([newLat, newLng]);
+    }
+    return res;
+  };
+
   return (
     <div className="card p-0 overflow-hidden">
       <div className="h-[540px] w-full relative">
@@ -320,6 +394,14 @@ export default function MapContainer({
           zoom={2}
           style={{ height: "100%", width: "100%" }}
           zoomControl={true}
+          whenCreated={(map) => {
+            // Attach click for drawing when enabled
+            map.on("click", (e) => {
+              if (!drawing) return;
+              const { latlng } = e;
+              setDrawCoords((prev) => [...prev, [latlng.lat, latlng.lng]]);
+            });
+          }}
         >
           <ScaleControl position="bottomleft" />
           <TileLayer
@@ -339,6 +421,50 @@ export default function MapContainer({
             <LayersControl.Overlay name="Telemetry Points">
               <LayerGroup>{pointMarkers}</LayerGroup>
             </LayersControl.Overlay>
+
+            <LayersControl.Overlay checked name="Geofences">
+              <LayerGroup>
+                {geofences.map((g) =>
+                  g.type === "circle" && Number.isFinite(g.coordinates?.[0]?.[0]) && Number.isFinite(g.coordinates?.[0]?.[1]) && Number.isFinite(g.radius) ? (
+                    <Polyline // show circle as approximated polyline if no circle primitive; leaflet circle isn't imported via react-leaflet here
+                      key={`g-${g.id}`}
+                      positions={approximateCircle(g.coordinates[0][0], g.coordinates[0][1], g.radius)}
+                      color="#10B981"
+                      weight={2}
+                      opacity={0.8}
+                    />
+                  ) : (
+                    Array.isArray(g.coordinates) && g.coordinates.length > 2 && (
+                      <Polyline key={`g-${g.id}`} positions={g.coordinates} color="#10B981" weight={2} opacity={0.8} />
+                    )
+                  )
+                )}
+                {/* current drawing preview */}
+                {drawCoords.length > 1 && (
+                  <Polyline positions={drawCoords} color="#F59E0B" weight={2} dashArray="4" />
+                )}
+              </LayerGroup>
+            </LayersControl.Overlay>
+
+            <LayersControl.Overlay name="Breach Events">
+              <LayerGroup>
+                {liveAlerts.map((a) =>
+                  Number.isFinite(a.lat) && Number.isFinite(a.lng) ? (
+                    <Marker key={a.id} position={[a.lat, a.lng]}>
+                      <Popup>
+                        <div className="text-sm">
+                          <div className="font-semibold">{a.title}</div>
+                          <div className="text-xs text-gray-500">{new Date(a.ts).toLocaleString()}</div>
+                          <div className={`text-xs mt-1 ${a.severity === "critical" ? "text-error" : a.severity === "warning" ? "text-secondary" : "text-gray-600"}`}>
+                            {a.severity?.toUpperCase()}
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ) : null
+                )}
+              </LayerGroup>
+            </LayersControl.Overlay>
           </LayersControl>
 
           {/* Cluster and Heat as side-effect layers */}
@@ -347,20 +473,74 @@ export default function MapContainer({
           <FitBounds />
         </LeafletMap>
       </div>
-      <div className="p-3 border-t text-xs text-gray-600 flex items-center justify-between">
-        <div>
-          {loading ? "Loading telemetry..." : `${points.length} points`}
-          {animalId ? ` • Animal: ${animalId}` : ""}
-          {deviceId ? ` • Device: ${deviceId}` : ""}
+      <div className="p-3 border-t text-xs text-gray-600 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div>
+            {loading ? "Loading telemetry..." : `${points.length} points`}
+            {animalId ? ` • Animal: ${animalId}` : ""}
+            {deviceId ? ` • Device: ${deviceId}` : ""}
+            {` • Geofences: ${geofences.length}`}
+          </div>
+          <button
+            className="text-primary"
+            onClick={loadTelemetry}
+            disabled={loading}
+            title="Reload telemetry"
+          >
+            Refresh
+          </button>
         </div>
-        <button
-          className="text-primary"
-          onClick={loadTelemetry}
-          disabled={loading}
-          title="Reload telemetry"
-        >
-          Refresh
-        </button>
+
+        {/* Geofence controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-gray-700">Geofence:</span>
+          {!drawing ? (
+            <button className="px-2 py-1 rounded-md border text-sm" onClick={() => { setDrawing(true); setDrawCoords([]); }}>
+              Start Polygon
+            </button>
+          ) : (
+            <>
+              <button className="px-2 py-1 rounded-md border text-sm" onClick={() => setDrawing(false)}>
+                Pause Drawing
+              </button>
+              <button className="px-2 py-1 rounded-md border text-sm" onClick={() => setDrawCoords([])}>
+                Clear Points
+              </button>
+            </>
+          )}
+          <input
+            className="border rounded-md px-2 py-1 text-sm"
+            placeholder="Fence name"
+            value={geoName}
+            onChange={(e) => setGeoName(e.target.value)}
+          />
+          <button
+            className="px-2 py-1 rounded-md border text-sm"
+            onClick={async () => {
+              if (drawCoords.length < 3) { alert("Add at least 3 points for a polygon"); return; }
+              try {
+                await geofenceApi.create({ name: geoName || "Geofence", type: "polygon", coordinates: drawCoords });
+                setDrawing(false);
+                setDrawCoords([]);
+                setGeoName("");
+                await loadGeofences();
+              } catch (e) {
+                alert(e?.message || "Failed to save geofence");
+              }
+            }}
+            disabled={drawCoords.length < 3}
+            title="Finish and save polygon"
+          >
+            Save Polygon
+          </button>
+          <button
+            className="px-2 py-1 rounded-md border text-sm"
+            onClick={loadGeofences}
+            title="Reload geofences"
+          >
+            Reload Geofences
+          </button>
+        </div>
       </div>
     </div>
   );

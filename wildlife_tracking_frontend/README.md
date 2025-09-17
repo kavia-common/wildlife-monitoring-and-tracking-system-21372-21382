@@ -46,3 +46,19 @@ The Ocean Professional theme is available via Tailwind config and CSS variables 
 
 - Date/Range:
   - Timeline supports start/end selection via `datetime-local` inputs; values are converted to ISO-8601 UTC for API calls.
+
+## Alerts & Geofences
+
+- Alerts:
+  - GET `/alerts?type=&severity=&status=&start=&end=&limit=`
+  - POST `/alerts/:id/ack` or `POST /alerts/:id { status: "acknowledged" }`
+  - WebSocket live stream attempted on `/ws/alerts` or `/alerts/ws`
+- Geofences:
+  - GET `/geofence` — list all geofences
+  - POST `/geofence` — create geofence `{ name, type: "polygon"|"circle", coordinates: [[lat,lng],...], radius? }`
+  - DELETE `/geofence/:id` — remove geofence
+  - POST `/geofence/assign` — assign fence to animal/device `{ geofenceId, animalId?, deviceId? }`
+
+UI:
+- Alerts page: filterable table with live toggle and acknowledge action. Toasts on incoming live alerts.
+- Dashboard map: geofence layer and polygon drawing controls. Live breach markers layer plotted from live alerts stream.
