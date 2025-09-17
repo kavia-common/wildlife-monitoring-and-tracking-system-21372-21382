@@ -1,13 +1,33 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ocean Professional Base Theme */
+:root {
+  --primary: #2563EB;
+  --secondary: #F59E0B;
+  --error: #EF4444;
+  --background: #f9fafb;
+  --surface: #ffffff;
+  --text: #111827;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply m-0 bg-[var(--background)] text-[var(--text)] font-sans;
+}
+
+a {
+  @apply text-primary hover:underline;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-white shadow-sm hover:opacity-90 transition;
+}
+
+.card {
+  @apply rounded-xl bg-surface shadow-sm border border-gray-100;
 }
